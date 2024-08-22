@@ -58,6 +58,15 @@
             font-size: 20px;
             color: #333;
         }
+
+        .high-score {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 18px;
+            color: #333;
+        }
     </style>
 </head>
 <body>
@@ -66,6 +75,7 @@
     <canvas id="snakeCanvas" width="400" height="400"></canvas>
     <div id="gameOver" class="game-over">Game Over!<br>Click to Restart</div>
     <div class="score" id="score">Score: 0</div>
+    <div class="high-score" id="highScore">High Score: 0</div>
 </div>
 
 <script>
@@ -74,12 +84,17 @@
     const scale = 20;
     const rows = canvas.height / scale;
     const columns = canvas.width / scale;
-    let snake, fruit, gameInterval, score = 0;
+    let snake, fruit, gameInterval, score = 0, highScore = 0;
+
+    // Sound effects
+    const eatSound = new Audio('eat.mp3');
+    const gameOverSound = new Audio('gameover.mp3');
 
     class Snake {
         constructor() {
             this.reset();
         }
+
         reset() {
             this.body = [{ x: 10 * scale, y: 10 * scale }];
             this.xSpeed = scale;
@@ -87,14 +102,31 @@
             this.total = 0;
             this.isGameOver = false;
         }
+
         draw() {
             this.body.forEach((segment, index) => {
                 ctx.fillStyle = index === 0 ? 'darkgreen' : 'green';
                 ctx.fillRect(segment.x, segment.y, scale, scale);
                 ctx.strokeStyle = 'darkgreen';
                 ctx.strokeRect(segment.x, segment.y, scale, scale);
+
+                // Add eyes to the snake's head
+                if (index === 0) {
+                    ctx.fillStyle = 'white';
+                    ctx.beginPath();
+                    ctx.arc(segment.x + scale / 4, segment.y + scale / 4, scale / 6, 0, Math.PI * 2);
+                    ctx.arc(segment.x + 3 * scale / 4, segment.y + scale / 4, scale / 6, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    ctx.fillStyle = 'black';
+                    ctx.beginPath();
+                    ctx.arc(segment.x + scale / 4, segment.y + scale / 4, scale / 10, 0, Math.PI * 2);
+                    ctx.arc(segment.x + 3 * scale / 4, segment.y + scale / 4, scale / 10, 0, Math.PI * 2);
+                    ctx.fill();
+                }
             });
         }
+
         update() {
             if (this.isGameOver) return;
             for (let i = this.body.length - 1; i > 0; i--) {
@@ -111,6 +143,7 @@
 
             this.checkCollision();
         }
+
         changeDirection(direction) {
             if (this.isGameOver) return;
             switch (direction) {
@@ -140,21 +173,30 @@
                     break;
             }
         }
+
         eat(fruit) {
             if (this.body[0].x === fruit.x && this.body[0].y === fruit.y) {
                 this.total++;
                 this.body.push({});
                 score++;
                 document.getElementById('score').innerText = 'Score: ' + score;
+                eatSound.play();
                 return true;
             }
             return false;
         }
+
         checkCollision() {
             for (let i = 1; i < this.body.length; i++) {
                 if (this.body[0].x === this.body[i].x && this.body[0].y === this.body[i].y) {
                     this.isGameOver = true;
                     document.getElementById('gameOver').classList.add('visible');
+                    gameOverSound.play();
+
+                    if (score > highScore) {
+                        highScore = score;
+                        document.getElementById('highScore').innerText = 'High Score: ' + highScore;
+                    }
                 }
             }
         }
@@ -164,10 +206,12 @@
         constructor() {
             this.pickLocation();
         }
+
         pickLocation() {
             this.x = Math.floor(Math.random() * columns) * scale;
             this.y = Math.floor(Math.random() * rows) * scale;
         }
+
         draw() {
             ctx.fillStyle = '#ff0000';
             ctx.fillRect(this.x, this.y, scale, scale);
@@ -179,6 +223,7 @@
         fruit = new Fruit();
         score = 0;
         document.getElementById('score').innerText = 'Score: 0';
+        document.getElementById('highScore').innerText = 'High Score: ' + highScore;
         gameInterval = setInterval(() => {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             fruit.draw();
